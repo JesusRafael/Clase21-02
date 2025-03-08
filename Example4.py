@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # 1. Load Data:
-df = pd.read_csv("/content/university_student_dashboard_data.csv")
+url = "https://raw.githubusercontent.com/JesusRafael/Clase21-02/refs/heads/main/university_student_dashboard_data.csv"
+df = pd.read_csv(url)
 
 # 2. Sidebar Filters:
 st.sidebar.header("Filters")
