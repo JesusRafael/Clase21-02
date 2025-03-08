@@ -1,37 +1,98 @@
-# Example 4
-
+import pandas as pd
 import streamlit as st
 import plotly.express as px
-import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Load Sample Data
-df = px.data.gapminder()
+# 1. Load Data:
+df = pd.read_csv("/content/university_student_dashboard_data.csv")
 
-# Streamlit App Title
-st.title("📊 Interactive Dashboard with Multiple Plots")
+# 2. Sidebar Filters:
+st.sidebar.header("Filters")
+program = st.sidebar.multiselect("Select Term:", df["Term"].unique())
+year = st.sidebar.selectbox("Select Year:", df["Year"].unique())
 
-# Create a sidebar filter for selecting a year
-selected_year = st.sidebar.slider("Select Year:", int(df["year"].min()), int(df["year"].max()), int(df["year"].min()))
+# 3. Filter Data:
+filtered_df = df[(df["Term"].isin(program)) & (df["Year"] == year)]
 
-# Filter data based on the selected year
-filtered_df = df[df.year == selected_year]
+# 4. Admissions Section:
+st.header("Admissions")
+col1, col2, col3 = st.columns(3)
+with col1:
+  st.subheader("Total Applications")
+  st.metric(label="Applications", value=filtered_df["Applications"].sum())
+with col2:
+  st.subheader("Admitted Rate")
+  admitted_rate = (filtered_df["Admitted"].sum() / filtered_df["Applications"].sum()) * 100
+  st.metric(label="Rate", value=f"{admitted_rate:.2f}%")
+with col3:
+  st.subheader("Enrollment Rate")
+  enrollment_rate = (filtered_df["Enrolled"].sum() / filtered_df["Applications"].sum()) * 100
+  st.metric(label="Rate", value=f"{enrollment_rate:.2f}%")
 
-# Create three different plots
-fig1 = px.scatter(filtered_df, x="gdpPercap", y="lifeExp", size="pop", color="continent",
-                  hover_name="country", log_x=True, size_max=60, title="Life Expectancy vs GDP")
+# 5. Retention Section:
+st.header("Retention")
+st.subheader("Retention Rate by Year")
 
-fig2 = px.bar(filtered_df, x="continent", y="pop", color="continent", title="Population per Continent")
+retention_by_year = df.groupby('Year')['Retention Rate (%)'].mean().reset_index()
 
-fig3 = px.line(filtered_df, x="country", y="gdpPercap", color="continent", title="GDP Per Capita by Country")
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.lineplot(x='Year', y='Retention Rate (%)', data=retention_by_year, ax=ax)
+ax.set_title('Retention Rate by Year')
+ax.set_xlabel('Year')
+ax.set_ylabel('Retention Rate (%)')
+st.pyplot(fig)
 
-# Layout - Using Tabs to Display Multiple Plots
-tab1, tab2, tab3 = st.tabs(["📌 Scatter Plot", "📊 Bar Chart", "📈 Line Chart"])
+# 6. Satisfaction Section:
+st.header("Student Satisfaction")
+average_satisfaction = df.groupby('Year')['Student Satisfaction (%)'].mean().reset_index()
+fig = px.bar(average_satisfaction, x='Year', y='Student Satisfaction (%)', 
+             title='Average Satisfaction by Year')
+st.plotly_chart(fig)
 
-with tab1:
-    st.plotly_chart(fig1, use_container_width=True)
+# 7. 
+st.header("Enrollment by Program")
+program_names = df.columns[7:]
+enrollment_data = []
+for program in program_names:
+  total_enrollment = df[program].sum()
+  enrollment_data.append([program, total_enrollment])
 
-with tab2:
-    st.plotly_chart(fig2, use_container_width=True)
+enrollment_df = pd.DataFrame(enrollment_data, columns=['Program', 'Enrolled'])
 
-with tab3:
-    st.plotly_chart(fig3, use_container_width=True)
+fig, ax = plt.subplots(figsize=(12, 6))
+sns.barplot(x='Program', y='Enrolled', data=enrollment_df, ax=ax)
+ax.set_title('Enrollment by Program')
+ax.set_xlabel('Program')
+ax.set_ylabel('Number of Enrolled Students')
+plt.xticks(rotation=45, ha='right')
+st.pyplot(fig)
+
+# 8. 
+spring_df = df[df['Term'] == 'Spring']
+fall_df = df[df['Term'] == 'Fall']
+
+spring_applications = spring_df['Applications'].sum()
+fall_applications = fall_df['Applications'].sum()
+spring_enrolled = spring_df['Enrolled'].sum()
+fall_enrolled = fall_df['Enrolled'].sum()
+
+terms = ['Spring', 'Fall']
+applications = [spring_applications, fall_applications]
+enrolled = [spring_enrolled, fall_enrolled] 
+
+x = np.arange(len(terms))  
+width = 0.35 
+
+fig, ax = plt.subplots()
+rects1 = ax.bar(x - width/2, applications, width, label='Applications')
+rects2 = ax.bar(x + width/2, enrolled, width, label='Enrolled')
+
+ax.set_ylabel('Number')
+ax.set_title('Comparison of Spring vs. Fall Terms')
+ax.set_xticks(x)
+ax.set_xticklabels(terms)
+ax.legend()
+
+st.pyplot(fig)
